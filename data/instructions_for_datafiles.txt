@@ -1,0 +1,4 @@
+All of the data files should be put in this folder.
+The naming in the code for the csv files has been 'allmaterial.csv' and 'train.csv'.
+You can use your own csv files with their own naming convention,
+but remember to update the CSV_SOURCE_STR variable in the .env file.

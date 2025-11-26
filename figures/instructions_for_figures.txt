@@ -1,0 +1,2 @@
+This is the folder where all the figures should be saved.
+Use easy-to-understand names, and remember to include the information of which dataset was used to produce the figure.
