@@ -7,3 +7,5 @@ seaborn
 keras
 pyarrow
 python-dotenv
+imblearn
+imbalanced-learn

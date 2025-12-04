@@ -8,8 +8,11 @@ This should install all the dependencies listed in the requirements.txt file. Yo
 
 The code is divided into different folders: data, figures, helpers.
 And there's a main_workflow.py Python file for the main task.
-In the main workflow file, first, there are some global variables defined,
+In the main workflow file, first, there are some global variables defined -> imported from config,
 that will later affect the flow of data cleaning and transformation,
 as the helper functions are being called and used.
 
-Later, the data is plotted (diagonal KDE) to see if there are any edge cases or outliers.
+The main model to train is a RandomForestClassifier with optimized hyperparameters.
+And at the end, the model is once more evaluated for its accuracy.
+
+The .env file that defines certain global variables is not provided publicly.

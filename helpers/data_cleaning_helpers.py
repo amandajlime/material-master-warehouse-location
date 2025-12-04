@@ -1,5 +1,8 @@
 import pandas as pd
+import numpy as np
+from scipy.stats.mstats import winsorize
 import typing
+from config import MIN_DIMENSION, MAX_DENSITY, MAX_WEIGHT, NUMERIC_COLUMNS_TO_CHANGE_NAMES
 
 
 def drop_na_rows(df: pd.DataFrame, col_list: typing.List[str] = []) -> pd.DataFrame:
@@ -182,4 +185,90 @@ def drop_rows_by_value(df: pd.DataFrame, col: str, value: str) -> pd.DataFrame:
 def drop_rows_by_values(df: pd.DataFrame, col: str, values: list[str] = []) -> pd.DataFrame:
     for value in values:
         df = drop_rows_by_value(df, col, value)
+    return 
+
+
+def clip_percentile(df: pd.DataFrame, columns: list, percentile: float):
+    for column in columns:
+        df[column] = df[column].clip(upper=df[column].quantile(0.99))
     return df
+
+
+def clip_small_amounts(df, threshold, destination_column):
+    # Get counts of each class
+    counts = df[destination_column].value_counts()
+    
+    # Find classes that have counts below threshold
+    small_classes = counts[counts < threshold].index.tolist()
+    
+    # Filter out rows with these small classes
+    df_clipped = df[~df[destination_column].isin(small_classes)].copy()
+    
+    return df_clipped
+
+
+def remove_impossible_values(df, min_dimension=MIN_DIMENSION, max_density=MAX_DENSITY, max_weight=MAX_WEIGHT):
+    """
+    Remove records with impossible physical values:
+    - Any dimension below min_dimension
+    - Density above max_density
+    - Net weight above max_weight
+    """
+    df_clean = df[
+        (df["Length_mm"] > min_dimension) &
+        (df["Width_mm"] > min_dimension) &
+        (df["Height_mm"] > min_dimension) &
+        (df["Density_kg_m3"] < max_density) &
+        (df["Net_Weight_kg"] < max_weight)
+    ].copy()
+    return df_clean
+
+
+def winsorize_columns(df, columns, lower_pct=0, upper_pct=0.01):
+    """
+    Apply winsorization to cap extreme high values (upper_pct).
+    Keeps most data but limits the influence of extreme outliers.
+    """
+    df_wins = df.copy()
+    for col in columns:
+        df_wins[col] = winsorize(df_wins[col], limits=(lower_pct, upper_pct))
+    return df_wins
+
+
+def log_transform_columns(df, columns):
+    """
+    Apply log(1+x) transformation to reduce skew in numeric features.
+    """
+    df_log = df.copy()
+    for col in columns:
+        df_log[col + "_log"] = np.log1p(df_log[col])
+    return df_log
+
+
+def clip_percentile(df, columns, percentile=0.99):
+    """
+    Clip numeric columns at the specified upper percentile.
+    """
+    df_clip = df.copy()
+    for col in columns:
+        upper_limit = df_clip[col].quantile(percentile)
+        df_clip[col] = df_clip[col].clip(lower=None, upper=upper_limit)
+    return df_clip
+
+
+def full_cleaning_pipeline(df, numeric_cols=NUMERIC_COLUMNS_TO_CHANGE_NAMES):
+    # 1. Remove impossible values
+    df_clean = remove_impossible_values(df)
+    
+    # 2. Winsorize numeric features
+    df_wins = winsorize_columns(df_clean, numeric_cols)
+    
+    # 3. Log-transform skewed features
+    #skewed_cols = ["Net_Weight_kg", "Volume_m3", "Density_kg_m3"]
+    #df_log = log_transform_columns(df_wins, skewed_cols)
+    
+    # 4. Clip 0.99 percentile
+    #df_final = clip_percentile(df_log, numeric_cols)
+    df_final = clip_percentile(df_wins, numeric_cols)
+    
+    return df_final
